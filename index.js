@@ -1,5 +1,7 @@
 require('dotenv').config()
 const axios = require('axios')
+const prompt = require('prompt-sync')()
+
 
 /** 
  * This application utilizes SportRadar API to find out NHL statistics for pre-determined group
@@ -20,9 +22,9 @@ const SPORTRADAR_API_KEY = process.env.SPORTRADAR_API_KEY
 const BASE_URL = "https://api.sportradar.us/nhl/trial/v7/en/games"
 
 const TODAY = new Date()
-const CUR_YEAR = TODAY.getFullYear();
-const CUR_MONTH = TODAY.getMonth()+1; // JS counts months from 0
-const CUR_DAY = TODAY.getDate()-1; // Yesterday
+const CUR_YEAR = TODAY.getFullYear()
+const CUR_MONTH = TODAY.getMonth()+1 // JS counts months from 0
+const CUR_DAY = TODAY.getDate()-1 // Yesterday
 
 const PLAYER_POOL = [
   { 
@@ -76,7 +78,7 @@ const fetchGames = async(year, month, day) => {
   const dailyGamesUrl = `${BASE_URL}/${year}/${month}/${day}/schedule.json?api_key=${SPORTRADAR_API_KEY}`
   try {
     const response = await axios.get(dailyGamesUrl)
-    await delay();
+    await delay()
     return response.data.games
   } catch(e) {
     console.log("Something went wrong with API call, please try again")
@@ -88,7 +90,7 @@ const fetchGameSummary = async(gameId) => {
   const gameSummaryUrl = `${BASE_URL}/${gameId}/summary.json?api_key=${SPORTRADAR_API_KEY}`
   try {
     const response = await axios.get(gameSummaryUrl)
-    await delay();
+    await delay()
     return response.data
   } catch(e) {
     console.log("Something went wrong with API call, please try again")
@@ -96,25 +98,25 @@ const fetchGameSummary = async(gameId) => {
 }
 
 
-const findGoals = async(year, month, day) => {
+const findStats = async(year, month, day) => {
   // Fetch all NHL games from yesterday via SportRadar API
   const games = await fetchGames(year, month, day);
   if(!games) return
   
   for(var i=0; i<PLAYER_POOL.length; i++){
     var player = PLAYER_POOL[i]
-    var teamPlayedYesterday = false;
-    var playerPlayedYesterday = false;
+    var teamPlayedYesterday = false
+    var playerPlayedYesterday = false
 
     // Check if the team of currently chosen player played yesterday
     for(var j=0; j<games.length; j++){
       var game = games[j]
 
       if(game.home.name === player.team || game.away.name === player.team) {
-        teamPlayedYesterday = true;
+        teamPlayedYesterday = true
 
         // If a game is found, fetch detailed game information
-        const gameSummary = await fetchGameSummary(game.id);
+        const gameSummary = await fetchGameSummary(game.id)
         if(!gameSummary) return
 
 
@@ -122,11 +124,11 @@ const findGoals = async(year, month, day) => {
 
         // Check if the team of currently chosen player was home or away, and choose the player list of that team
         if(game.home.name === player.team) {
-          console.log(`${player.team} played against ${game.away.name} in ${CUR_YEAR}/${CUR_DAY}/${CUR_MONTH}`)
+          console.log(`${player.team} played against ${game.away.name} in ${year}/${day}/${month}`)
           players = gameSummary.home.players
         }
         else {
-          console.log(`${player.team} played against ${game.home.name} in ${CUR_YEAR}/${CUR_DAY}/${CUR_MONTH}`)
+          console.log(`${player.team} played against ${game.home.name} in ${year}/${day}/${month}`)
           players = gameSummary.away.players
         } 
         
@@ -151,13 +153,28 @@ const findGoals = async(year, month, day) => {
         })
       }
     } 
-    if(!teamPlayedYesterday) console.log(`${player.team} did not play in ${CUR_YEAR}/${CUR_DAY}/${CUR_MONTH} \n`);
-    if(teamPlayedYesterday && !playerPlayedYesterday) console.log(`${player.name} was not on ice \n`);
+    if(!teamPlayedYesterday) console.log(`${player.team} did not play in ${year}/${day}/${month} \n`)
+    if(teamPlayedYesterday && !playerPlayedYesterday) console.log(`${player.name} was not on ice \n`)
   }
 }
 
-const main = () => {
-  findGoals(CUR_YEAR, CUR_MONTH, CUR_DAY)
+const main = async() => {
+  console.log('What date would you like to srach for NHL statistics?')
+  console.log('1) Yesterday')
+  console.log('2) I choose on my own')
+  const selection = prompt('Choose one: ')
+
+  if(selection === "1") {
+    await findStats(CUR_YEAR, CUR_MONTH, CUR_DAY)
+  } else if (selection === "2") {
+    const year = prompt('Year: ')
+    const month = prompt('Month: ')
+    const day = prompt('Day: ')
+    console.log()
+    await findStats(year, month, day)
+  } else {
+    console.log("Please, select one from the above options \n")
+  }
 }
 
 main()
