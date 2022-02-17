@@ -1,3 +1,6 @@
+require('dotenv').config()
+const axios = require('axios')
+
 /** 
  * This application utilizes SportRadar API to find out NHL statistics for pre-determined group
  * of players. First, application makes an API call to retreive all the NHL games played on a
@@ -13,15 +16,13 @@
  **
  */
 
-require('dotenv').config()
-const axios = require('axios')
-
 const SPORTRADAR_API_KEY = process.env.SPORTRADAR_API_KEY
+const BASE_URL = "https://api.sportradar.us/nhl/trial/v7/en/games"
+
 const TODAY = new Date()
 const CUR_YEAR = TODAY.getFullYear();
 const CUR_MONTH = TODAY.getMonth()+1; // JS counts months from 0
 const CUR_DAY = TODAY.getDate()-1; // Yesterday
-const URL_DAILY_GAMES = `https://api.sportradar.us/nhl/trial/v7/en/games/${CUR_YEAR}/${CUR_MONTH}/${CUR_DAY}/schedule.json?api_key=${SPORTRADAR_API_KEY}`
 
 const PLAYER_POOL = [
   { 
@@ -41,33 +42,52 @@ const PLAYER_POOL = [
     team: "Florida Panthers"
   },
   {
+    name: "Patrik Laine",
+    team: "Columbus Blue Jackets"
+  },
+  {
+    name: "Jesse Puljujarvi",
+    team: "Edmonton Oilers"
+  },
+  {
     name: "Roope Hintz",
     team: "Dallas Stars"
   },
   {
     name: "Mikael Granlund",
     team: "Nashville Predators"
+  },
+  {
+    name: "Anton Lundell",
+    team: "Florida Panthers"
+  },
+  {
+    name: "Miro Heiskanen",
+    team: "Dallas Stars"
   }
 ]
+
 
 // Basic API subscription limits queries per seconds => delay is implemeted as a work around
 const delay = _ => new Promise(resolve => setTimeout(resolve, 800))
 
-const fetchGames = async() => {
+
+const fetchGames = async(year, month, day) => {
+  const dailyGamesUrl = `${BASE_URL}/${year}/${month}/${day}/schedule.json?api_key=${SPORTRADAR_API_KEY}`
   try {
-    const response = await axios.get(URL_DAILY_GAMES)
+    const response = await axios.get(dailyGamesUrl)
     await delay();
-    return response.data
+    return response.data.games
   } catch(e) {
     console.log("Something went wrong with API call, please try again")
   }
 }
+
 
 const fetchGameSummary = async(gameId) => {
-  const URL_GAME_SUMMARY = `https://api.sportradar.us/nhl/trial/v7/en/games/${gameId}/summary.json?api_key=${SPORTRADAR_API_KEY}`
-
+  const gameSummaryUrl = `${BASE_URL}/${gameId}/summary.json?api_key=${SPORTRADAR_API_KEY}`
   try {
-    const response = await axios.get(URL_GAME_SUMMARY)
+    const response = await axios.get(gameSummaryUrl)
     await delay();
     return response.data
   } catch(e) {
@@ -75,12 +95,11 @@ const fetchGameSummary = async(gameId) => {
   }
 }
 
-const main = async() => {
-  // Fetch all NHL games from yesterday via SportRadar API
-  const gameData = await fetchGames();
-  if(!gameData) return
 
-  const games = gameData.games
+const findGoals = async(year, month, day) => {
+  // Fetch all NHL games from yesterday via SportRadar API
+  const games = await fetchGames(year, month, day);
+  if(!games) return
   
   for(var i=0; i<PLAYER_POOL.length; i++){
     var player = PLAYER_POOL[i]
@@ -135,8 +154,10 @@ const main = async() => {
     if(!teamPlayedYesterday) console.log(`${player.team} did not play in ${CUR_YEAR}/${CUR_DAY}/${CUR_MONTH} \n`);
     if(teamPlayedYesterday && !playerPlayedYesterday) console.log(`${player.name} was not on ice \n`);
   }
+}
 
-  
+const main = () => {
+  findGoals(CUR_YEAR, CUR_MONTH, CUR_DAY)
 }
 
 main()
