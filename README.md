@@ -9,6 +9,10 @@ Install dependencies with npm
 ```javascript
 npm install
 ```
+Load environment variables by creating .env file and including the following
+```javascript
+SPORTRADAR_API_KEY=your-sportradar-api-key
+```
 Run the program
 ```javascript
 npm run index.js
